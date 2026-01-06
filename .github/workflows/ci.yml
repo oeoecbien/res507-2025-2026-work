@@ -11,4 +11,4 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run preview script
-        run: ./scripts/ci-preview.sh
+        run: ./workspace/scripts/ci-preview.sh
