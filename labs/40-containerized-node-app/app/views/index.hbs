@@ -7,52 +7,101 @@
   <title>QuoteBoard</title>
   <style>
     body {
-      font-family: system-ui, sans-serif;
-      max-width: 700px;
-      margin: 2rem auto;
-      padding: 0 1rem;
-      background: #111;
-      color: #eee;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      max-width: 680px;
+      margin: 2.5rem auto;
+      padding: 0 1.25rem 2.5rem;
+      background: #0b0b0b;
+      color: #f3f4f6;
+      line-height: 1.5;
+    }
+
+    h1 {
+      font-size: 1.7rem;
+      margin: 0 0 0.75rem;
+      letter-spacing: -0.03em;
+    }
+
+    p.lead {
+      margin: 0 0 1.75rem;
+      font-size: 0.95rem;
+      color: #9ca3af;
+    }
+
+    .panel {
+      border-radius: 10px;
+      border: 1px solid #27272a;
+      padding: 1.25rem 1.1rem 1.3rem;
+      background: #09090b;
     }
 
     form {
       display: grid;
-      gap: .5rem;
-      margin-bottom: 2rem;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
     }
 
     input,
     textarea,
     button {
       font: inherit;
-      margin-top: 0.5rem;
+      margin-top: 0.4rem;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      padding: 0.5rem 0.6rem;
+      border-radius: 6px;
+      border: 1px solid #27272a;
+      background: #020617;
+      color: inherit;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: #6b7280;
+    }
+
+    button {
+      padding: 0.45rem 0.9rem;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
     }
 
     .quote {
-      margin-bottom: 1rem;
+      margin-bottom: 0.9rem;
+      padding-bottom: 0.7rem;
+      border-bottom: 1px solid #27272a;
     }
   </style>
 </head>
 
 <body>
   <h1>QuoteBoard</h1>
+  <p class="lead">Un tableau très simple pour collecter quelques citations.</p>
 
-  <form method="post" action="/quotes">
-    <input name="author" placeholder="Author (optional)" />
-    <textarea name="text" placeholder="Write a quote..." required></textarea>
-    <button type="submit">Add quote</button>
-  </form>
+  <div class="panel">
+    <form method="post" action="/quotes">
+      <input name="author" placeholder="Author (optional)" />
+      <textarea name="text" placeholder="Write a quote..." required></textarea>
+      <button type="submit">Add quote</button>
+    </form>
 
-  {{#if quotes.length}}
-  {{#each quotes}}
-  <div class="quote">
-    <div>{{this.text}}</div>
-    <div>— {{this.author}}</div>
+    {{#if quotes.length}}
+    {{#each quotes}}
+    <div class="quote">
+      <div>{{this.text}}</div>
+      <div>— {{this.author}}</div>
+    </div>
+    {{/each}}
+    {{else}}
+    <p>No quotes yet. Add the first one.</p>
+    {{/if}}
   </div>
-  {{/each}}
-  {{else}}
-  <p>No quotes yet. Add the first one.</p>
-  {{/if}}
 </body>
 
 </html>
