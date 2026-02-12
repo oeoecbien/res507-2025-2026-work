@@ -1,35 +1,31 @@
-# Lab 30 — Containerized Node Application
+## Architecture & production (Kubernetes)
 
-This directory contains the **work repository scaffold** for Lab 30 of the course.
+Voir `architecture-notes.md` pour les réponses et le raisonnement.
 
-You will build, run, and containerize a small Node.js application backed by a PostgreSQL database.
-The focus of this lab is **containers, configuration, and runtime behavior**, not Node.js itself.
+### Déploiement avec Secret (ordre des commandes)
 
-## How this repo is used
+1. Namespace (si besoin) :  
+   `kubectl create namespace quote-lab`
 
-- You should be working from **your own fork** of this repository.
-- The **step-by-step instructions** for this lab are provided on the course website.
-- This repository contains only the files you will modify and run during the lab.
+2. Secret (à faire avant d’appliquer le Deployment) :  
+   ```bash
+   kubectl create secret generic quote-db-secret \
+     --from-literal=POSTGRES_USER=quote \
+     --from-literal=POSTGRES_PASSWORD=quote \
+     --from-literal=DATABASE_URL=postgres://quote:quote@localhost:5432/postgres \
+     --namespace=quote-lab
+   ```
 
-## Directory structure
+3. ConfigMap init DB :  
+   `kubectl apply -f docker/postgres-init-configmap.yaml`
 
-- `app/`  
-  The Node.js application (Fastify + Handlebars).
+4. Deployment et Service :  
+   `kubectl apply -f docker/deployment.yaml`  
+   `kubectl apply -f docker/service.yaml`
 
-- `db/`  
-  Database initialization scripts.
+5. Vérification :  
+   `kubectl get pods -n quote-lab`  
+   `kubectl get services -n quote-lab`
 
-- `docker/`  
-  Dockerfile and Docker Compose configuration.
-
-## Important notes
-
-- Do not commit `node_modules`.
-- Configuration is provided via environment variables.
-- The application is designed to start even if the database is not running.
-- Database access is enabled as part of the lab exercises.
-
-## Where to start
-
-Follow the Lab 30 instructions on the course website.
-They will guide you through running the application using Docker, connecting it to PostgreSQL, and packaging it correctly.
+6. Scale (optionnel) :  
+   `kubectl scale deployment quote-app -n quote-lab --replicas=3`

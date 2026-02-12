@@ -20,7 +20,23 @@ spec:
             - containerPort: 3232
           env:
             - name: DATABASE_URL
-              value: "postgres://postgres:postgres@localhost:5432/postgres"
+              valueFrom:
+                secretKeyRef:
+                  name: quote-db-secret
+                  key: DATABASE_URL
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3232
+            initialDelaySeconds: 5
+            periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /health
@@ -31,11 +47,24 @@ spec:
           image: postgres:16-alpine
           env:
             - name: POSTGRES_USER
-              value: postgres
+              valueFrom:
+                secretKeyRef:
+                  name: quote-db-secret
+                  key: POSTGRES_USER
             - name: POSTGRES_PASSWORD
-              value: postgres
+              valueFrom:
+                secretKeyRef:
+                  name: quote-db-secret
+                  key: POSTGRES_PASSWORD
             - name: POSTGRES_DB
               value: postgres
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
           ports:
             - containerPort: 5432
           volumeMounts:
