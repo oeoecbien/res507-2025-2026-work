@@ -74,7 +74,8 @@ spec:
               mountPath: /docker-entrypoint-initdb.d
       volumes:
         - name: postgres-data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: postgres-data
         - name: db-init
           configMap:
             name: quote-db-init

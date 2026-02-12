@@ -19,13 +19,16 @@ Voir `architecture-notes.md` pour les réponses et le raisonnement.
 3. ConfigMap init DB :  
    `kubectl apply -f docker/postgres-init-configmap.yaml`
 
-4. Deployment et Service :  
+4. PVC pour la persistance Postgres :  
+   `kubectl apply -f docker/postgres-pvc.yaml`
+
+5. Deployment et Service :  
    `kubectl apply -f docker/deployment.yaml`  
    `kubectl apply -f docker/service.yaml`
 
-5. Vérification :  
+6. Vérification :  
    `kubectl get pods -n quote-lab`  
    `kubectl get services -n quote-lab`
 
-6. Scale (optionnel) :  
+7. Scale (optionnel) :  
    `kubectl scale deployment quote-app -n quote-lab --replicas=3`
