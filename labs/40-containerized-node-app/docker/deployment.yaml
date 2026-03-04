@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quote-app
+  namespace: quote-lab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: quote-app
+  template:
+    metadata:
+      labels:
+        app: quote-app
+    spec:
+      containers:
+        - name: quote-app
+          image: quote-app:local
+          ports:
+            - containerPort: 3232
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: quote-db-secret
+                  key: DATABASE_URL
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3232
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3232
+            initialDelaySeconds: 15
+            periodSeconds: 5
+        - name: postgres
+          image: postgres:16-alpine
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: quote-db-secret
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: quote-db-secret
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              value: postgres
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+            - name: db-init
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: postgres-data
+        - name: db-init
+          configMap:
+            name: quote-db-init

@@ -1,35 +1,71 @@
-# Lab 30 — Containerized Node Application
+# Quote App — Lab 40 (conteneurisé) & 85 (Kubernetes)
 
-This directory contains the **work repository scaffold** for Lab 30 of the course.
+Application Node.js (citations) avec PostgreSQL, conteneurisée puis déployée sur Kubernetes (namespace `quote-lab`).
 
-You will build, run, and containerize a small Node.js application backed by a PostgreSQL database.
-The focus of this lab is **containers, configuration, and runtime behavior**, not Node.js itself.
+- **Documentation lab 85** : voir [architecture-notes.md](architecture-notes.md) pour le raisonnement, le diagramme et les réponses.
 
-## How this repo is used
+---
 
-- You should be working from **your own fork** of this repository.
-- The **step-by-step instructions** for this lab are provided on the course website.
-- This repository contains only the files you will modify and run during the lab.
+## Prérequis
 
-## Directory structure
+- Docker (build de l’image)
+- kubectl + cluster Kubernetes (ex. k3s)
 
-- `app/`  
-  The Node.js application (Fastify + Handlebars).
+---
 
-- `db/`  
-  Database initialization scripts.
+## Build de l’image
 
-- `docker/`  
-  Dockerfile and Docker Compose configuration.
+À exécuter depuis la racine de ce lab (`labs/40-containerized-node-app/`) :
 
-## Important notes
+```bash
+docker build -t quote-app:local -f docker/Dockerfile .
+```
 
-- Do not commit `node_modules`.
-- Configuration is provided via environment variables.
-- The application is designed to start even if the database is not running.
-- Database access is enabled as part of the lab exercises.
+Avec k3s/containerd en local, importer l’image si besoin :
 
-## Where to start
+```bash
+docker save quote-app:local | sudo k3s ctr images import -
+```
 
-Follow the Lab 30 instructions on the course website.
-They will guide you through running the application using Docker, connecting it to PostgreSQL, and packaging it correctly.
+---
+
+## Déploiement Kubernetes (ordre des commandes)
+
+1. **Namespace** (si besoin) :
+   ```bash
+   kubectl create namespace quote-lab
+   ```
+
+2. **Secret** (obligatoire avant le Deployment) :
+   ```bash
+   kubectl create secret generic quote-db-secret \
+     --from-literal=POSTGRES_USER=quote \
+     --from-literal=POSTGRES_PASSWORD=quote \
+     --from-literal=DATABASE_URL=postgres://quote:quote@localhost:5432/postgres \
+     --namespace=quote-lab
+   ```
+
+3. **ConfigMap init DB** :  
+   `kubectl apply -f docker/postgres-init-configmap.yaml`
+
+4. **PVC** (persistance Postgres) :  
+   `kubectl apply -f docker/postgres-pvc.yaml`
+
+5. **Deployment et Service** :  
+   `kubectl apply -f docker/deployment.yaml`  
+   `kubectl apply -f docker/service.yaml`
+
+6. **Vérification** :
+   ```bash
+   kubectl get pods -n quote-lab
+   kubectl get services -n quote-lab
+   ```
+
+7. **Test en local (port-forward)** :
+   ```bash
+   kubectl port-forward -n quote-lab svc/quote-app 3000:80
+   ```
+   Puis ouvrir http://localhost:3000
+
+8. **Scale** (optionnel) :  
+   `kubectl scale deployment quote-app -n quote-lab --replicas=3`

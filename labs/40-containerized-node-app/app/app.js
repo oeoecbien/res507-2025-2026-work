@@ -34,10 +34,13 @@ export async function buildApp(options = {}) {
 
   // Get all quotes endpoint
   app.get("/", async (_req, reply) => {
-    const result = await app.pg.query("SELECT * FROM quotes");
-    const quotes = result.rows;
-
-    return reply.view("index.hbs", { quotes });
+    try {
+      const result = await app.pg.query("SELECT * FROM quotes");
+      return reply.view("index.hbs", { quotes: result.rows });
+    } catch (err) {
+      app.log.warn({ err }, "Database unavailable");
+      return reply.view("index.hbs", { quotes: [] });
+    }
   });
 
   // Post new quote endpoint
@@ -46,21 +49,23 @@ export async function buildApp(options = {}) {
     const text = (req.body?.text ?? "").trim();
 
     if (!text) {
-      // Keep it simple: redirect back
       return reply.redirect("/");
     }
 
-    await app.pg.query("INSERT INTO quotes (author, text) VALUES ($1, $2)", [
-      author || "anonymous",
-      text,
-    ]);
-
-    app.log.info(
-      { quote: { author: author || "anonymous", text } },
-      "New quote added",
-    );
-
-    return reply.redirect("/");
+    try {
+      await app.pg.query("INSERT INTO quotes (author, text) VALUES ($1, $2)", [
+        author || "anonymous",
+        text,
+      ]);
+      app.log.info(
+        { quote: { author: author || "anonymous", text } },
+        "New quote added",
+      );
+      return reply.redirect("/");
+    } catch (err) {
+      app.log.warn({ err }, "Database unavailable");
+      return reply.status(503).send("Database unavailable. Please try again later.");
+    }
   });
 
   return app;
