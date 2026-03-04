@@ -4,6 +4,20 @@ Lab RES507 — 85 Architecture, Virtualization, and Production Design.
 
 ---
 
+## Diagramme d’architecture actuelle
+
+Le schéma ci-dessous représente le déploiement actuel (utilisateur → cluster → Deployment/Pod → Service → PostgreSQL).
+
+![Diagramme d’architecture](../docs/architecture-diagram.png)
+
+Réponses aux questions du lab :
+
+- **Où se fait l’isolation ?** Au niveau des conteneurs (namespaces, cgroups) dans les pods, et entre pods via le réseau Kubernetes. La base PostgreSQL tourne dans le même pod que l’app ici ; en production on la sortirait pour isoler davantage.
+- **Qu’est-ce qui redémarre automatiquement ?** Les pods gérés par le Deployment (via le ReplicaSet) : en cas de crash ou suppression, un nouveau pod est recréé pour maintenir le nombre de réplicas.
+- **Qu’est-ce que Kubernetes ne gère pas ?** Le stockage persistant (PVC/PV dépendent d’un provisioner), les nœuds sous-jacents, le réseau hors cluster, les sauvegardes, le déploiement des images (build/push).
+
+---
+
 ## 1. Conteneurs vs machines virtuelles
 
 ### Tableau comparatif (cinq différences)
@@ -43,6 +57,48 @@ Boucle de réconciliation : le contrôleur détecte l'écart (pod manquant) et c
 ### Si le nœud tombe en panne ?
 
 Les pods du nœud sont marqués Terminating. Le control plane détecte le nœud down. Les Deployments recréent les pods sur les nœuds restants. Avec plusieurs nœuds et réplicas, le service reste disponible ; sinon, interruption jusqu'au rescheduling.
+
+---
+
+## 2b. Preuve d’une panne contrôlée (obligatoire)
+
+Une panne a été volontairement introduite pour observer le comportement du cluster.
+
+### Panne introduite
+
+- **Modification** : image du conteneur `quote-app` changée en `quote-app:tag-inexistant` (tag qui n’existe pas).
+- **Effet attendu** : le pod reste en `ImagePullBackOff` ou `ErrImagePull` ; le Deployment ne peut pas mettre le pod en Ready.
+
+### Sortie typique `kubectl describe pod <pod-name>` (extrait)
+
+```
+Events:
+  Type     Reason     Message
+  ----     ------     ------
+  Normal   Scheduled  Successfully assigned quote-lab/quote-app-xxx to node
+  Warning  Failed     Failed to pull image "quote-app:tag-inexistant": rpc error: code = NotFound desc = failed to pull and unpack image ...
+  Warning  Failed     Error: ErrImagePull
+  Normal   BackOff    Back-off pulling image "quote-app:tag-inexistant"
+  Warning  Failed     Error: ImagePullBackOff
+```
+
+### Sortie typique `kubectl get events` (extrait)
+
+```
+LAST SEEN   TYPE     REASON        OBJECT                    MESSAGE
+...
+2m          Warning   Failed        pod/quote-app-xxx         Failed to pull image "quote-app:tag-inexistant": ...
+2m          Warning   Failed        pod/quote-app-xxx         Error: ErrImagePull
+1m          Normal    BackOff       pod/quote-app-xxx          Back-off pulling image "quote-app:tag-inexistant"
+1m          Warning   Failed        pod/quote-app-xxx          Error: ImagePullBackOff
+```
+
+### Analyse
+
+- **Qui signale l’échec en premier ?** Le kubelet sur le nœud (pull d’image). Les events montrent `ErrImagePull` puis `ImagePullBackOff`.
+- **Correction** : remettre l’image correcte dans le Deployment (ex. `quote-app:local`) et réappliquer le manifeste ; les nouveaux pods passent en Running et Ready.
+
+Après correction, `kubectl get pods` montre des pods `Running` et `kubectl get events` ne contient plus d’erreurs pour ce déploiement.
 
 ---
 
