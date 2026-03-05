@@ -8,7 +8,7 @@ Lab RES507 — 85 Architecture, Virtualization, and Production Design.
 
 Le schéma ci-dessous représente le déploiement actuel (utilisateur → cluster → Deployment/Pod → Service → PostgreSQL).
 
-![Diagramme d’architecture](../docs/architecture-diagram.png)
+![Diagramme d’architecture](diagrams/architecture-diagram.png)
 
 Réponses aux questions du lab :
 
